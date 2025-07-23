@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>German "wenn" Sentence Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
+        }
+
+        /* --- Main Container Animation --- */
+        #app-container {
+            animation: fadeIn 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        /* --- Button Styling --- */
+        .word-bank-button, .answer-word-button {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 3px 0 0 rgba(0,0,0,0.08);
+        }
+        .word-bank-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 8px 0 rgba(0,0,0,0.1);
+        }
+        .word-bank-button:active {
+            transform: translateY(1px);
+            box-shadow: 0 2px 0 0 rgba(0,0,0,0.1);
+        }
+        .word-bank-button:disabled {
+            opacity: 0.2;
+            cursor: not-allowed;
+            transform: translateY(0);
+            box-shadow: 0 3px 0 0 rgba(0,0,0,0.08);
+        }
+
+        /* --- Answer Area Styling --- */
+        .answer-area {
+            border-bottom: 3px solid rgba(255, 255, 255, 0.4);
+            min-height: 90px;
+            transition: all 0.3s ease-in-out;
+        }
+        .feedback-correct {
+            border-color: #22c55e;
+            background-color: rgba(240, 253, 244, 0.8); /* Green tint */
+        }
+        .feedback-incorrect {
+            border-color: #ef4444;
+            background-color: rgba(254, 242, 242, 0.8); /* Red tint */
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* --- Main Call-to-Action Buttons --- */
+        .main-cta-button {
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 5px 0 0 rgba(0,0,0,0.15);
+        }
+        .main-cta-button:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+        .main-cta-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 0 rgba(0,0,0,0.2);
+        }
+        .main-cta-button:disabled {
+            filter: grayscale(0.6);
+            opacity: 0.6;
+            cursor: not-allowed;
+            box-shadow: 0 5px 0 0 rgba(0,0,0,0.1);
+            transform: translateY(0);
+        }
+
+        /* --- Keyframe Animations --- */
+        @keyframes shake {
+            10%, 90% { transform: translateX(-1px); }
+            20%, 80% { transform: translateX(2px); }
+            30%, 50%, 70% { transform: translateX(-4px); }
+            40%, 60% { transform: translateX(4px); }
+        }
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.95); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .completion-view {
+            animation: popIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-violet-200 via-pink-200 to-purple-300 flex items-center justify-center min-h-screen p-4">
+
+    <div id="app-container" class="w-full max-w-2xl mx-auto bg-white/40 backdrop-blur-xl p-6 sm:p-8 rounded-3xl shadow-2xl border border-white/50">
+        <div id="game-view">
+            <!-- Progress Bar -->
+            <div class="w-full bg-black/5 rounded-full h-3 mb-4 shadow-inner">
+                <div id="progress-bar" class="bg-gradient-to-r from-violet-400 to-fuchsia-500 h-3 rounded-full transition-all duration-500 ease-out"></div>
+            </div>
+            <p id="progress-indicator" class="text-center text-purple-800/70 mb-8 font-medium text-sm">Sentence 1 of 20</p>
+            
+            <h1 class="text-xl md:text-2xl font-bold text-gray-800 mb-6">Translate this sentence:</h1>
+
+            <!-- English Sentence -->
+            <div class="bg-white/60 p-4 rounded-xl shadow-md mb-6 flex items-center space-x-4 border border-white/50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-violet-600 flex-shrink-0"><path d="m5 8 6 6"></path><path d="m4 14 6-6 2-3"></path><path d="M2 5h12"></path><path d="M7 2h1"></path><path d="m22 22-5-10-5 10"></path><path d="M14 18h6"></path></svg>
+                <p id="english-sentence" class="text-gray-900 text-lg font-semibold">Loading...</p>
+            </div>
+
+            <!-- Answer Area -->
+            <div id="answer-area" class="bg-white/20 p-4 rounded-t-xl flex flex-wrap gap-2 items-center answer-area"></div>
+
+            <!-- Word Bank -->
+            <div id="word-bank" class="p-6 flex flex-wrap justify-center items-center gap-3 min-h-[120px]"></div>
+
+            <!-- Controls -->
+            <div id="controls" class="mt-8 text-center">
+                 <div id="action-buttons" class="flex flex-col md:flex-row gap-4 justify-center">
+                    <button id="check-button" class="w-full md:w-auto bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold py-4 px-12 rounded-xl text-xl uppercase tracking-wider main-cta-button" disabled>Check</button>
+                    <button id="next-button" class="w-full md:w-auto bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold py-4 px-12 rounded-xl text-xl uppercase tracking-wider main-cta-button hidden">Continue</button>
+                </div>
+                 <p id="feedback-message" class="mt-6 font-bold h-6 text-lg"></p>
+            </div>
+        </div>
+
+        <!-- Completion View -->
+        <div id="completion-view" class="hidden text-center">
+            <div class="flex justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-amber-400 drop-shadow-lg"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+            </div>
+            <h2 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-fuchsia-600 mb-4">Lesson Complete!</h2>
+            <p class="text-gray-700 text-lg mb-8">You are a "wenn" master. Fantastic work!</p>
+            <div class="flex justify-center">
+                 <button id="restart-button" class="bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white font-bold py-4 px-8 rounded-xl text-lg uppercase tracking-wider main-cta-button">Practice Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Elements ---
+            const progressBar = document.getElementById('progress-bar');
+            const progressIndicator = document.getElementById('progress-indicator');
+            const englishSentenceEl = document.getElementById('english-sentence');
+            const answerArea = document.getElementById('answer-area');
+            const wordBank = document.getElementById('word-bank');
+            const checkButton = document.getElementById('check-button');
+            const nextButton = document.getElementById('next-button');
+            const feedbackMessage = document.getElementById('feedback-message');
+            const gameView = document.getElementById('game-view');
+            const completionView = document.getElementById('completion-view');
+            const restartButton = document.getElementById('restart-button');
+
+            // --- Data ---
+            const sentences = [
+                { de: "Wenn es regnet, bleibe ich zu Hause.", en: "When it rains, I stay at home." },
+                { de: "Wenn ich koche, höre ich Musik.", en: "When I cook, I listen to music." },
+                { de: "Wenn ich Zeit habe, lese ich gerne ein Buch.", en: "When I have time, I like to read a book." },
+                { de: "Du musst die Jacke anziehen, wenn es draußen kalt ist.", en: "You have to put on the jacket if it's cold outside." },
+                { de: "Wenn der Film beginnt, sind wir leise.", en: "When the movie starts, we are quiet." },
+                { de: "Sag mir Bescheid, wenn du Hilfe brauchst.", en: "Let me know if you need help." },
+                { de: "Wenn der Wecker klingelt, stehe ich sofort auf.", en: "When the alarm clock rings, I get up immediately." },
+                { de: "Wir können später essen, wenn du jetzt keinen Hunger hast.", en: "We can eat later if you aren't hungry now." },
+                { de: "Wenn man eine neue Sprache lernt, muss man geduldig sein.", en: "When one learns a new language, one has to be patient." },
+                { de: "Was machst du, wenn du müde bist?", en: "What do you do when you are tired?" },
+                { de: "Er geht nach Hause, wenn er fertig ist.", en: "He goes home when he is finished." },
+                { de: "Das Licht geht an, wenn jemand den Raum betritt.", en: "The light turns on when someone enters the room." },
+                { de: "Wenn die Sonne scheint, gehen wir im Park spazieren.", en: "When the sun is shining, we go for a walk in the park." },
+                { de: "Ich werde nervös, wenn ich vor vielen Leuten sprechen muss.", en: "I get nervous when I have to speak in front of many people." },
+                { de: "Wenn das Baby schläft, macht die Mutter eine Pause.", en: "When the baby sleeps, the mother takes a break." },
+                { de: "Er hört Musik, wenn er arbeitet.", en: "He listens to music when he works." },
+                { de: "Ich trinke Kaffee, wenn ich morgens aufstehe.", en: "I drink coffee when I get up in the morning." },
+                { de: "Die Pflanzen sterben, wenn man sie nicht gießt.", en: "The plants die if you don't water them." },
+                { de: "Ruf mich an, wenn du am Bahnhof ankommst.", en: "Call me when you arrive at the train station." },
+                { de: "Wenn alle zusammenarbeiten, sind wir schneller fertig.", en: "If everyone works together, we will be finished faster." }
+            ];
+
+            // --- State ---
+            let currentSentenceIndex = 0;
+            let userSelection = [];
+
+            // --- Utility Functions ---
+            const shuffleArray = (array) => {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            };
+            
+            // --- Core Game Logic ---
+            function loadSentence() {
+                if (currentSentenceIndex >= sentences.length) {
+                    showCompletionScreen();
+                    return;
+                }
+
+                // Reset UI states
+                userSelection = [];
+                answerArea.innerHTML = '';
+                wordBank.innerHTML = '';
+                feedbackMessage.textContent = '';
+                checkButton.disabled = true;
+                checkButton.classList.remove('hidden');
+                nextButton.classList.add('hidden');
+                answerArea.classList.remove('feedback-correct', 'feedback-incorrect');
+
+                // Update progress
+                const progress = ((currentSentenceIndex + 1) / sentences.length) * 100;
+                progressBar.style.width = `${progress}%`;
+                progressIndicator.textContent = `Sentence ${currentSentenceIndex + 1} of ${sentences.length}`;
+                
+                const sentenceData = sentences[currentSentenceIndex];
+                englishSentenceEl.textContent = sentenceData.en;
+                
+                // Generate words for the word bank
+                const words = sentenceData.de.split(' ').map((word, index) => ({ word, originalIndex: index }));
+                const shuffledWords = shuffleArray([...words]);
+                
+                shuffledWords.forEach(wordObj => {
+                    const button = document.createElement('button');
+                    button.textContent = wordObj.word;
+                    button.dataset.originalIndex = wordObj.originalIndex;
+                    button.className = 'word-bank-button bg-white border border-gray-200 text-gray-700 font-bold py-3 px-5 rounded-xl text-lg';
+                    button.addEventListener('click', () => selectWord(wordObj, button));
+                    wordBank.appendChild(button);
+                });
+            }
+
+            function selectWord(wordObj, button) {
+                userSelection.push(wordObj);
+                button.disabled = true;
+                const answerWord = document.createElement('button');
+                answerWord.textContent = wordObj.word;
+                answerWord.className = 'answer-word-button bg-violet-200 border-2 border-violet-300 text-violet-800 font-bold py-3 px-5 rounded-xl text-lg';
+                answerWord.addEventListener('click', () => deselectWord(wordObj, answerWord, button));
+                answerArea.appendChild(answerWord);
+                checkButton.disabled = false;
+            }
+
+            function deselectWord(wordObj, answerWord, originalButton) {
+                const indexToRemove = userSelection.findIndex(item => item.originalIndex === wordObj.originalIndex);
+                if (indexToRemove > -1) {
+                    userSelection.splice(indexToRemove, 1);
+                }
+                answerArea.removeChild(answerWord);
+                originalButton.disabled = false;
+                if (userSelection.length === 0) {
+                    checkButton.disabled = true;
+                }
+            }
+
+            function checkAnswer() {
+                const userAnswerString = userSelection.map(item => item.word).join(' ');
+                const correctAnswer = sentences[currentSentenceIndex].de;
+
+                if (userAnswerString === correctAnswer) {
+                    answerArea.classList.add('feedback-correct');
+                    feedbackMessage.textContent = 'Excellent!';
+                    feedbackMessage.className = 'mt-6 font-bold h-6 text-lg text-green-600';
+                    checkButton.classList.add('hidden');
+                    nextButton.classList.remove('hidden');
+                } else {
+                    answerArea.classList.add('feedback-incorrect');
+                    feedbackMessage.textContent = 'Not quite, try again!';
+                    feedbackMessage.className = 'mt-6 font-bold h-6 text-lg text-red-600';
+                }
+            }
+
+            function nextSentence() {
+                currentSentenceIndex++;
+                loadSentence();
+            }
+
+            function showCompletionScreen() {
+                gameView.classList.add('hidden');
+                completionView.classList.remove('hidden');
+                completionView.classList.add('completion-view');
+            }
+
+            function restartGame() {
+                currentSentenceIndex = 0;
+                completionView.classList.add('hidden');
+                completionView.classList.remove('completion-view');
+                gameView.classList.remove('hidden');
+                loadSentence();
+            }
+
+            // --- Event Listeners ---
+            checkButton.addEventListener('click', checkAnswer);
+            nextButton.addEventListener('click', nextSentence);
+            restartButton.addEventListener('click', restartGame);
+
+            // --- Initial Load ---
+            loadSentence();
+        });
+    </script>
+</body>
+</html>
